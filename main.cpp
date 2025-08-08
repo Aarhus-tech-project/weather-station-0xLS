@@ -11,7 +11,7 @@
 
 
 const std::string MQTT_BROKER = "tcp://192.168.102.254:1883";
-const std::string MQTT_TOPIC = "test";
+const std::string MQTT_TOPIC = "weather";
 const std::string MQTT_CLIENT_ID = "cpp_logger";
 
 // MySQL connection (adjust these as needed)

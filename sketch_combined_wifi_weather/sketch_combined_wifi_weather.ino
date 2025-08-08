@@ -5,12 +5,13 @@
 #include <ArduinoMqttClient.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
+#define BME280_ADDRESS 0x76  // or 0x77 depending on your wiring
 
 const char* wifiSSID = "h4prog";
 const char* wifiPass = "1234567890";
 
 const char* mqttBroker = "192.168.102.254";
-const char* topic = "test";
+const char* topic = "weather";
 
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
@@ -20,6 +21,9 @@ Adafruit_BME280 bme;
 void setup() {
   Serial.begin(115200);
   while (!Serial);
+
+  // change default clock speed - this should make the 180c temp error less commpon
+  Wire.setClock(100000);
 
   // Connect to WiFi
   Serial.print("Connecting to WiFi");
@@ -38,7 +42,7 @@ void setup() {
 
   delay(2000);
 
-  if (!bme.begin(0x76)) {
+  if (!bme.begin(BME280_ADDRESS)) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
   }
@@ -79,6 +83,11 @@ void loop() {
   float altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
   float humidity = bme.readHumidity();
 
+  if (temp > 120) {
+    reinitBME280();
+    return;
+  }
+
   // Format as CSV string
   String data = String(temp, 2) + "," +
                 String(pressure, 2) + "," +
@@ -90,6 +99,15 @@ void loop() {
   mqttClient.endMessage();
 
   readBME280(temp, pressure, altitude, humidity);
+}
+
+void reinitBME280() {
+  bme = Adafruit_BME280();
+  if (!bme.begin(BME280_ADDRESS)) {
+    Serial.println("BME280 reinit failed, retrying.");
+  } else {
+    Serial.println("BME280 reinitialized successfully.");
+  }
 }
 
 void readBME280(float temp, float pressure, float altitude, float humidity) {
