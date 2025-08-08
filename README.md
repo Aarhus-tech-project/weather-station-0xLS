@@ -1,1 +1,14 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/XBO6NBqk)
+# Weather Station
+
+## Installing required libraries
+```bash
+apt install libpaho-mqttpp-dev libpaho-mqtt-dev libmysqlcppconn-dev libssl-dev build-essential cmake g++ libboost-system-dev mosquitto mosquitto-clients iw net-tools neofetch nginx docker.io
+```
+
+## Spinning up mysql8.0 in a docker
+```bash
+sh ./boot-mysql.sh
+```
+mysql should be accessible at `0.0.0.0:3306`with the following credentials
+- username: `root`
+- password: `password`
