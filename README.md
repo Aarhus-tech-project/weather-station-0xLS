@@ -21,3 +21,20 @@ sh ./build.sh
 chmod +x ./mqtt_mysql_logger
 ./mqtt_mysql_logger
 ```
+
+## Grafana
+
+```bash
+sudo apt install -y apt-transport-https software-properties-common wget curl gnupg2
+
+sudo mkdir -p /etc/apt/keyrings
+wget -q -O - https://apt.grafana.com/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+
+sudo apt update
+sudo apt install -y grafana
+
+sudo systemctl daemon-reexec
+sudo systemctl enable grafana-server
+sudo systemctl start grafana-server
+```

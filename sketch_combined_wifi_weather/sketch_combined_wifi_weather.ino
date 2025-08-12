@@ -13,6 +13,9 @@ const char* wifiPass = "1234567890";
 const char* mqttBroker = "192.168.102.254";
 const char* topic = "weather";
 
+bool sensorReady = false;
+int sensorPowerPin = 7; // Connect gate/base of MOSFET or VCC switch here
+
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
 
@@ -44,7 +47,8 @@ void setup() {
 
   if (!bme.begin(BME280_ADDRESS)) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1);
+    delay(2000);
+    reinitBME280();
   }
 
   Serial.println("BME280 initialized!");
@@ -63,7 +67,7 @@ void setup() {
 void loop() {
   mqttClient.poll();
 
-  delay(2000);
+  delay(10000);
 
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
@@ -83,7 +87,9 @@ void loop() {
   float altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
   float humidity = bme.readHumidity();
 
-  if (temp > 120) {
+  readBME280(temp, pressure, altitude, humidity);
+
+  if (temp > 120 || temp < -10 || isnan(temp)) {
     reinitBME280();
     return;
   }
@@ -97,16 +103,30 @@ void loop() {
   mqttClient.beginMessage(topic);
   mqttClient.print(data);
   mqttClient.endMessage();
-
-  readBME280(temp, pressure, altitude, humidity);
 }
 
 void reinitBME280() {
+  delay(500);
   bme = Adafruit_BME280();
   if (!bme.begin(BME280_ADDRESS)) {
     Serial.println("BME280 reinit failed, retrying.");
   } else {
     Serial.println("BME280 reinitialized successfully.");
+  }
+
+  delay(2000);
+
+  float temp = bme.readTemperature();
+  if (temp > 120 || temp < -10 || isnan(temp)) {
+    Serial.println("Power cycle bme280 & reset arduino board");
+    Wire.beginTransmission(0x76);  // Replace with 0x77 if using that address
+    Wire.write(0xE0);              // Reset register
+    Wire.write(0xB6);              // Reset command
+    Wire.endTransmission();
+
+    delay(500);
+    Serial.println("");
+    NVIC_SystemReset();
   }
 }
 
