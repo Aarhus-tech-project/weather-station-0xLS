@@ -1,6 +1,6 @@
 # Weather Station
 
-### WARNING: Program made using debian12
+### INFO: Program made & tested using Debian12 (bookworm)
 
 ## Installing required libraries
 ```bash
@@ -67,4 +67,22 @@ serve_from_sub_path = true
 ```conf
 bind_address 0.0.0.0
 allow_anonymous true
+```
+
+## General configuration
+
+Machine the code was tested on has been setup with Debian12. <br />
+Tailscale has been installed on the machine to allow for connecting outside the network. <br />
+When not using tailscale to connect with, the machine is on h4prog network on the IP 192.168.102.254
+
+MySQL has been setup through docker instead of just being installed on the machine due to mysql not having updated to support Bookwork (Debian12) yet.
+
+Connecting to the machine has been done with SSH & vscode ssh remotes (using ssh keypairs).
+
+### SSH Configuration
+
+```conf
+PermitRootLogin yes
+PubkeyAuthentication yes
+AuthorizedKeysFile      .ssh/authorized_keys .ssh/authorized_keys2
 ```
