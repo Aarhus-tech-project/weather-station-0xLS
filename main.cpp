@@ -9,7 +9,6 @@
 #include <mysql_error.h>
 #include <cppconn/prepared_statement.h>
 
-
 const std::string MQTT_BROKER = "tcp://192.168.102.254:1883";
 const std::string MQTT_TOPIC = "weather";
 const std::string MQTT_CLIENT_ID = "cpp_logger";
@@ -26,17 +25,17 @@ public:
         std::string payload = msg->to_string();
         std::cout << "Received message: " << payload << std::endl;
 
-        // Connect to MySQL and insert message
         try {
             sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
             std::unique_ptr<sql::Connection> con(driver->connect(MYSQL_HOST, MYSQL_USER, MYSQL_PASS));
             con->setSchema(MYSQL_DB);
 
+            // Prepared statements to avoid injection (should not even happen, but you never know who might get access to the mqtt service)
             std::unique_ptr<sql::PreparedStatement> pstmt(
                 con->prepareStatement("INSERT INTO data (temp, pressure, altitude, humidity) VALUES (?, ?, ?, ?)")
             );
 
-            // Dummy parse example: assume message format like "22,1010,150,45"
+            // Parse input "22,1010,150,45" (temp, pressure, altitude, humidity)
             std::istringstream iss(payload);
             std::string temp, pressure, altitude, humidity;
             std::getline(iss, temp, ',');
@@ -44,6 +43,7 @@ public:
             std::getline(iss, altitude, ',');
             std::getline(iss, humidity, ',');
 
+            // using setString as mysql will parse the value from input to type double when inserting.
             pstmt->setString(1, temp);
             pstmt->setString(2, pressure);
             pstmt->setString(3, altitude);
@@ -66,6 +66,7 @@ int main() {
     callback cb;
     client.set_callback(cb);
 
+    // Default settings for connecting to MQTT broker
     mqtt::connect_options connOpts;
     try {
         client.connect(connOpts)->wait();

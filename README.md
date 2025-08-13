@@ -18,7 +18,6 @@ mysql should be accessible at `0.0.0.0:3306`with the following credentials
 ## Spinning up the weather station subscriber
 ```bash
 sh ./build.sh
-chmod +x ./mqtt_mysql_logger
 ./mqtt_mysql_logger
 ```
 
@@ -37,4 +36,35 @@ sudo apt install -y grafana
 sudo systemctl daemon-reexec
 sudo systemctl enable grafana-server
 sudo systemctl start grafana-server
+```
+
+### NGINX config for grafana
+
+```nginx
+location /grafana/ {
+    proxy_pass http://localhost:3000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_set_header Connection "";
+    rewrite ^/grafana/(.*) /$1 break;
+}
+```
+
+### Grafana settings for nginx
+
+```ini
+http_addr = 0.0.0.0
+root_url = %(protocol)s://%(domain)s:%(http_port)s/grafana
+serve_from_sub_path = true
+```
+
+## Mosquitto configuration
+```conf
+bind_address 0.0.0.0
+allow_anonymous true
 ```
