@@ -13,9 +13,6 @@ const char* wifiPass = "1234567890";
 const char* mqttBroker = "192.168.102.254";
 const char* topic = "weather";
 
-bool sensorReady = false;
-int sensorPowerPin = 7; // Connect gate/base of MOSFET or VCC switch here
-
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
 
@@ -28,40 +25,12 @@ void setup() {
   // change default clock speed - this should make the 180c temp error less commpon
   Wire.setClock(100000);
 
-  // Connect to WiFi
-  Serial.print("Connecting to WiFi");
-  while (WiFi.begin(wifiSSID, wifiPass) != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-  }
-
-  while (WiFi.localIP() == INADDR_NONE) {
-    delay(100);
-  }
-
-  Serial.println("\nConnected to WiFi!");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
+  // Init wifi, bme & mqtt device
+  setupWifi();
   delay(2000);
-
-  if (!bme.begin(BME280_ADDRESS)) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    delay(2000);
-    reinitBME280();
-  }
-
-  Serial.println("BME280 initialized!");
-
-  // Retry connecting to MQTT broker until success
-  Serial.println("Connecting to MQTT broker...");
-  while (!mqttClient.connect(mqttBroker)) {
-    Serial.print("MQTT connection failed! Error code = ");
-    Serial.println(mqttClient.connectError());
-    Serial.println("Retrying in 5 seconds...");
-    delay(5000);
-  }
-  Serial.println("Connected to MQTT broker!");
+  setupBME280();
+  delay(1000);
+  setupMqttClient();
 }
 
 void loop() {
@@ -94,17 +63,55 @@ void loop() {
     return;
   }
 
-  // Format as CSV string
-  String data = String(temp, 2) + "," +
-                String(pressure, 2) + "," +
-                String(altitude, 2) + "," +
-                String(humidity, 2);
+  // Format as CSV string - Avoid using String(..) + "," + ... - this is way cleaner memory wise.
+  char data[100];  // make sure the buffer is large enough
+  snprintf(data, sizeof(data), "%.2f,%.2f,%.2f,%.2f", temp, pressure, altitude, humidity);
 
   mqttClient.beginMessage(topic);
   mqttClient.print(data);
   mqttClient.endMessage();
 }
 
+void setupWifi() {
+  // Connect to WiFi
+  Serial.print("Connecting to WiFi");
+  while (WiFi.begin(wifiSSID, wifiPass) != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  while (WiFi.localIP() == INADDR_NONE) {
+    delay(100);
+  }
+
+  Serial.println("\nConnected to WiFi!");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void setupBME280() {
+  if (!bme.begin(BME280_ADDRESS)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    delay(2000);
+    reinitBME280();
+  }
+
+  Serial.println("BME280 initialized!");
+}
+
+void setupMqttClient() {
+  // Retry connecting to MQTT broker until success
+  Serial.println("Connecting to MQTT broker...");
+  while (!mqttClient.connect(mqttBroker)) {
+    Serial.print("MQTT connection failed! Error code = ");
+    Serial.println(mqttClient.connectError());
+    Serial.println("Retrying in 5 seconds...");
+    delay(5000);
+  }
+  Serial.println("Connected to MQTT broker!");
+}
+
+// Attempt to reinit the sensor if the device suddenly fails (cant gaurantee a success)
 void reinitBME280() {
   delay(500);
   bme = Adafruit_BME280();
@@ -119,7 +126,7 @@ void reinitBME280() {
   float temp = bme.readTemperature();
   if (temp > 120 || temp < -10 || isnan(temp)) {
     Serial.println("Power cycle bme280 & reset arduino board");
-    Wire.beginTransmission(0x76);  // Replace with 0x77 if using that address
+    Wire.beginTransmission(0x76);
     Wire.write(0xE0);              // Reset register
     Wire.write(0xB6);              // Reset command
     Wire.endTransmission();
