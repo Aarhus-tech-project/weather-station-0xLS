@@ -86,3 +86,6 @@ PermitRootLogin yes
 PubkeyAuthentication yes
 AuthorizedKeysFile      .ssh/authorized_keys .ssh/authorized_keys2
 ```
+
+## Arduino image
+![Test](image.png)
